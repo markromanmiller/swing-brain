@@ -16,10 +16,16 @@ To-dos:
 </p>
 
 <svg id="mainView" viewBox="0 0 600 600" width="600px" height="600px">
+    <defs>
+        <image id="batimg" width="283." height="22.35" x="40" y="260" href="bat_cropped.jpg"/>
+    </defs>
+    <use id="bat" href="#batimg" transform="rotate(-110 40 260) translate(40 0)"></use>
+    </svg>
 
-</svg>
-
-<button onclick="loadPitch()">Next Pitch</button>
+<p>
+    <button onclick="loadPitch()">Next Pitch</button>
+    <button onclick="showPitch()">Show Pitch</button>
+</p>
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
 <script src="https://d3js.org/d3.v7.min.js"></script>

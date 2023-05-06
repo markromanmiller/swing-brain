@@ -8,6 +8,7 @@ const pitchDataURL = "https://statsapi.mlb.com/api/v1.1/game/661042/feed/live?fi
 // TODO: in the middle of iterating pitches
 let playIndex = 0;
 let pitchIndex = 0;
+let pitchShown;
 
 const PIXELS_AT_45 = 600;
 const CAMERA_Y = -6; // camera is 6 feet behind the plate
@@ -16,9 +17,13 @@ const WINDOW_WIDTH = 600;
 const WINDOW_HEIGHT = 600;
 const BASEBALL_RADIUS = 0.1208; // in feet
 
+const SHOULDER_X = 40;
+const SHOULDER_Y = 260;
+
 function qsolve(a, b, c) {
-    const result = (-1 * b + Math.sqrt(Math.pow(b, 2) - (4 * a * c))) / (2 * a);
-    const result2 = (-1 * b - Math.sqrt(Math.pow(b, 2) - (4 * a * c))) / (2 * a);
+    const root_discriminant = Math.sqrt(Math.pow(b, 2) - (4 * a * c));
+    const result = (-1 * b + root_discriminant) / (2 * a);
+    const result2 = (-1 * b - root_discriminant) / (2 * a);
     return Math.min(result, result2);
 }
 
@@ -41,6 +46,50 @@ function motionOverTime(pd) {
     }
 }
 
+function updateBat(evt) {
+    let loc = cursorPoint(evt);
+    // make a bat such that...
+    // 33 inches length.
+    // 1394 is 34 inches or 2.833
+    // pick the rotation such that:
+    // angle is easy lol.
+
+    const diff_x = loc.x - SHOULDER_X;
+    const diff_y = loc.y - SHOULDER_Y;
+
+    const transformSpec = "rotate(" +
+        (Math.atan2(diff_y, diff_x)*180 / 3.141592) +
+        " 40 260) translate(" +
+        Math.max(0, Math.min(120, Math.sqrt(diff_x*diff_x + diff_y*diff_y) - (283*0.75))) +
+        ")";
+
+    //console.log(transformSpec);
+    d3.select("#bat").attr("transform", transformSpec);
+
+    // make it such that the distance (3/4 of the bat) is at the sweet spot
+
+}
+
+// Find your root SVG element
+let svg = document.querySelector("svg");
+let pt = svg.createSVGPoint();
+function cursorPoint(evt){
+    pt.x = evt.clientX; pt.y = evt.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+
+svg.addEventListener('mousemove', updateBat, false);
+svg.addEventListener('mouseleave', function() {
+    d3.select("#bat").attr("transform", "rotate(-110 40 260) translate(40 0)");
+}, false);
+svg.addEventListener('click', function() {
+    if (pitchShown) {
+        loadPitch();
+    } else {
+        showPitch();
+    }
+}, false);
+
 function plotOnSVG(pd) {
 
     // make the function
@@ -53,19 +102,27 @@ function plotOnSVG(pd) {
     const plateTime = qsolve(0.5 * co.aY, co.vY0, co.y0);
     // plate time is wrong?
 
-
+    const hideTime = (Math.random() * .050) + .175;
 
     // 0 is 50ft cross time
+    // platetime is cross time to plate.
     for (let qt = plateTime - 0.0; qt > 0; qt += -0.050) {
 
-        const circle_info = mot(qt)
+        const circle_info = mot(qt);
 
-        d3.select("#mainView").append('circle')
+        const circ = d3.select("#mainView").append('circle')
             .attr("r", circle_info.radius)
             .attr("cx", circle_info.pixel_x)
             .attr("cy", circle_info.pixel_y)
-            .attr("opacity", "0.3")
-            .attr("class", "pitch-circle");
+            .attr("class", "pitch-circle")
+            .attr("opacity", "0.3");
+
+        if (qt > plateTime - hideTime) {
+            circ.attr("visibility", "hidden");
+        }
+        if (qt === plateTime) {
+            circ.attr("opacity", "1");
+        }
     }
 }
 
@@ -91,7 +148,6 @@ function drawVLine(x, y) {
 
 function iterateToNextPitch(pitcher) {
     // I need a class to handle this lol.
-    console.log("in", pitchIndex, playIndex);
 
     // assume playindex and pitchindex currently point to valid info.
     do {
@@ -104,7 +160,6 @@ function iterateToNextPitch(pitcher) {
             }
         }
     } while (!allPlays[playIndex].playEvents[pitchIndex].isPitch);
-    console.log("out", pitchIndex, playIndex);
 
 }
 
@@ -116,13 +171,14 @@ function loadPitch() {
     iterateToNextPitch(660271);
     let pitchData = allPlays[playIndex].playEvents[pitchIndex].pitchData;
     plotOnSVG(pitchData);
+    pitchShown = false;
 
 }
 
-/*
-
-
- */
+function showPitch() {
+    d3.selectAll(".pitch-circle").attr("visibility", null);
+    pitchShown = true;
+}
 
 $.getJSON({
     url: pitchDataURL,
