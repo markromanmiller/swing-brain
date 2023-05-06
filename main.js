@@ -1,12 +1,13 @@
 
 let allPlays;
 
-pitchDataURL = "https://statsapi.mlb.com/api/v1.1/game/661042/feed/live?fields=liveData,plays,allPlays,matchup," +
+const pitchDataURL = "https://statsapi.mlb.com/api/v1.1/game/661042/feed/live?fields=liveData,plays,allPlays,matchup," +
     "pitcher,id,fullName,link,playEvents,isPitch,pitchData,startSpeed,endSpeed,strikeZoneTop,strikeZoneBottom," +
     "coordinates,aX,aY,aZ,pX,pZ,vX0,vY0,vZ0,x,y,x0,y0,z0,plateTime";
 
 // TODO: in the middle of iterating pitches
-pitchIndex = 1;
+let playIndex = 0;
+let pitchIndex = 0;
 
 const PIXELS_AT_45 = 600;
 const CAMERA_Y = -6; // camera is 6 feet behind the plate
@@ -88,18 +89,33 @@ function drawVLine(x, y) {
         .attr("stroke-width", 1).attr("stroke", "black");
 }
 
+function iterateToNextPitch(pitcher) {
+    // I need a class to handle this lol.
+    console.log("in", pitchIndex, playIndex);
+
+    // assume playindex and pitchindex currently point to valid info.
+    do {
+        pitchIndex += 1;
+        if (allPlays[playIndex].playEvents.length <= pitchIndex) {
+            playIndex += 1;
+            pitchIndex = 0;
+            while (allPlays[playIndex].matchup.pitcher.id !== pitcher) {
+                playIndex += 1;
+            }
+        }
+    } while (!allPlays[playIndex].playEvents[pitchIndex].isPitch);
+    console.log("out", pitchIndex, playIndex);
+
+}
+
 function loadPitch() {
-    // find the next pitch
+    // clear everything
     d3.selectAll(".pitch-circle").remove();
 
-    for (let i = 8; i < 12; i++) {
-        // nice! this works so that I can see who pitches where.
-        // lh/rh is correct - Framber pitches with his left, Shohei with his right
-        let pitchData = allPlays[i].playEvents[0].pitchData;
-        if(pitchData) {
-            plotOnSVG(pitchData);
-        }
-    }
+    // only Shohei 660271
+    iterateToNextPitch(660271);
+    let pitchData = allPlays[playIndex].playEvents[pitchIndex].pitchData;
+    plotOnSVG(pitchData);
 
 }
 
