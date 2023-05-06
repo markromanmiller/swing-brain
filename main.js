@@ -180,19 +180,30 @@ function showPitch() {
     pitchShown = true;
 }
 
+function setupSVG() {
+    drawHLine(400, 12);
+    drawHLine(400, 0);
+    drawVLine(-0.708, 0);
+    drawVLine(0.708, 0);
+    drawHLine(0, 1);
+    drawHLine(0, 3.2);
+    d3.select("#mainView")
+        .append('text')
+        .attr("class", "remove-on-load")
+        .attr("x", 300)
+        .attr("y", 300)
+        .text("Loading");
+}
+
+setupSVG();
+
 $.getJSON({
     url: pitchDataURL,
     success: function( result ) {
         allPlays = result.liveData.plays.allPlays;
 
-        drawHLine(400, 12);
-        drawHLine(400, 0);
-        drawVLine(-0.708, 0);
-        drawVLine(0.708, 0);
-        drawHLine(0, 1);
-        drawHLine(0, 3.2);
+        d3.select(".remove-on-load").remove();
 
         loadPitch();
-
     }
 });
